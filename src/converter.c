@@ -1,7 +1,3 @@
-#include "converter.h"
-#include <stdio.h>
-#include <stdlib.h>
-
 Error str_to_int(const char* str, int* out_int)
 {
     int ret_int = 0;

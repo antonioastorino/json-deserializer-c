@@ -1,6 +1,4 @@
-#include "class_json.h"
-#include "converter.h"
-#include "class_string.h"
+#include "header.h"
 
 int main()
 {
@@ -11,3 +9,10 @@ int main()
     test_class_string();
 #endif /* TEST == 1 */
 }
+
+#include "class_json.c"
+#include "class_string.c"
+#include "converter.c"
+#include "common.c"
+#include "my_memory.c"
+

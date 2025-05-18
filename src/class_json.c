@@ -1,9 +1,3 @@
-#include "class_json.h"
-#include "converter.h"
-#include "my_memory.h"
-#include <stdio.h>
-#include <string.h>
-
 #define MAX_NUM_LEN (30)
 
 // Used only for returning data in a convenient way. Not used for storage.

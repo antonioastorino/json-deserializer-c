@@ -2,23 +2,25 @@
 set -eu
 setopt +o nomatch
 
+APP_NAME="main-test"
+ARTIFACT_FOLDER="test/artifacts"
+LOG_FILE_ERR="${ARTIFACT_FOLDER}/err.log"
+BUILD_DIR="build"
 BD="$(pwd)/$(dirname $0)/.."
-source "${BD}/bin/variables.sh"
-
-OPT_LEVEL=0
-while getopts o: flag; do
-    case "${flag}" in
-    o) OPT_LEVEL=${OPTARG} ;;
-    esac
-done
 
 # Accept case-insensitive mode by converting to uppercase
 MODE=${@:$OPTIND:1}
 MODE=${MODE:u}
 
-if [ "${MODE}" = "DEBUG" ]; then
-    OPT_LEVEL=0 # force no optimization in debug mode
+FLAGS=(-Wall -Wextra -std=c2x -pedantic)
+if [ "${MODE}" = "DEBUG" ] || [ "${MODE}" = "TEST" ] ; then
+    FLAGS+=(-O0 -g -fsanitize=address -DTEST -DMEMORY_CHECK)
 fi
+
+if [ "$(uname -s)" = "Linux" ]; then
+    FLAGS+=(-D_BSD_SOURCE -D_DEFAULT_SOURCE -D_GNU_SOURCE)
+fi
+
 
 function f_analyze_mem() {
     echo "Memory report analysis started."
@@ -36,31 +38,14 @@ function f_analyze_mem() {
     echo "Memory report analysis completed."
 }
 
-function f_setup_for_testing() {
-    [ $(grep -c '^#define TEST 0' "${BD}/${COMMON_HEADER}") -eq 1 ] &&
-        sed -i.bak 's/^#define TEST 0/#define TEST 1/g' "${BD}/${COMMON_HEADER}" ||
-        :
-    [ $(grep -c '^#define MEMORY_CHECK 0' "${BD}/${COMMON_HEADER}") -eq 1 ] &&
-        sed -i.bak 's/^#define MEMORY_CHECK 0/#define MEMORY_CHECK 1/g' "${BD}/${COMMON_HEADER}" ||
-        :
-}
-
-function f_setup_for_running() {
-    [ $(grep -c '^#define TEST 1' "${BD}/${COMMON_HEADER}") -eq 1 ] &&
-        sed -i.bak 's/^#define TEST 1/#define TEST 0/g' "${BD}/${COMMON_HEADER}" ||
-        :
-    [ $(grep -c '^#define MEMORY_CHECK 1' "${BD}/${COMMON_HEADER}") -eq 1 ] &&
-        sed -i.bak 's/^#define MEMORY_CHECK 1/#define MEMORY_CHECK 0/g' "${BD}/${COMMON_HEADER}" ||
-        :
-}
-
 pushd "${BD}"
 echo "Closing running instance"
 set +e
 echo "${BD}/test/artifacts"
-/bin/rm -rf "${BD}/test/artifacts"
-/bin/rm -rf /tmp/pointers
-/bin/rm -rf ${ARTIFACT_FOLDER}
+rm -rf "${BD}/test/artifacts"
+rm -rf /tmp/pointers
+rm -rf ${ARTIFACT_FOLDER}
+mkdir -p "${BUILD_DIR}" 
 
 PID=$(pgrep ${APP_NAME})
 set -e
@@ -71,15 +56,10 @@ else
     echo "No process was running."
 fi
 
-if ! [ -f "${MAKE_FILE}" ]; then
-    echo "No makefile found."
-    echo "Calling bin/makeMakefile.sh"
-    ./bin/makeMakefile.sh
-fi
+clang src/"${APP_NAME}.c" ${FLAGS} -o "${BUILD_DIR}/${APP_NAME}"
 
 echo "Running"
 if [ "${MODE}" = "TEST" ] || [ "${MODE}" = "DEBUG" ]; then
-    f_setup_for_testing
     mkdir -p /tmp/pointers
     # Set up dir entries for testing.
     mkdir -p "${ARTIFACT_FOLDER}/empty/" \
@@ -92,7 +72,6 @@ if [ "${MODE}" = "TEST" ] || [ "${MODE}" = "DEBUG" ]; then
     touch "${ARTIFACT_FOLDER}/delete_me.txt"
     touch "${ARTIFACT_FOLDER}/delete_me_2.txt"
 
-    make MODE=TEST OPT=${OPT_LEVEL} 2>&1
     if [ "${MODE}" = "TEST" ]; then
         # Remove previous logs.
         ./"${BUILD_DIR}/${APP_NAME}" 2>"${LOG_FILE_ERR}"
@@ -118,12 +97,10 @@ if [ "${MODE}" = "TEST" ] || [ "${MODE}" = "DEBUG" ]; then
     else
         lldb ./"${BUILD_DIR}/${APP_NAME}"
     fi
-    f_setup_for_running
 elif [ "${MODE}" = "BUILD" ]; then
-    f_setup_for_running
-    make OPT=${OPT_LEVEL} 2>&1
+    echo "Build completed"    
 else
-    echo "Error: accpepted mode is 'test', 'debug', or 'build'"
+    echo "Error: accepted mode is 'test', 'debug', or 'build'"
     exit 1
 fi
 popd

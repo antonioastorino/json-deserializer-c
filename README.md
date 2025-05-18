@@ -28,7 +28,19 @@ JsonObj_destroy(&json_obj);                  // Don't leak memory!
 
 ## How to build and test
 
+Build using
 ```bash
-./bin/makeMakefile.sh
+./bin/run.sh build 
+```
+
+Build and run tests using
+```bash
 ./bin/run.sh test
 ```
+
+Build and run debugger using 
+```bash
+./bin/run.sh test
+```
+
+

@@ -1,9 +1,3 @@
-#include "common.h"
-#include <stdlib.h>
-
-// ---------- ERROR ----------
-
-// ---------- LOGGER ----------
 #if LOG_LEVEL > LEVEL_NO_LOGS
 
 static FILE* log_out_file_p = NULL;
