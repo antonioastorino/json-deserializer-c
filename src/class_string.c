@@ -40,8 +40,13 @@ String _String_new(const char* file, const int line, ...)
     size_t allocated_size = (size_t)(actual_size * SIZE_FACTOR);
     if (allocated_size)
     {
-        // Linux will return a NULL pointer if allocated_size == 0
-        tmp_str_p = (char*)my_memory_realloc(file, line, tmp_str_p, allocated_size);
+        // Add 1 byte to account for the trailing '\n'
+        tmp_str_p = (char*)my_memory_realloc(file, line, tmp_str_p, allocated_size + 1);
+    }
+    if (tmp_str_p == NULL)
+    {
+        LOG_ERROR("Fatal: cannot allocate memory");
+        exit(ERR_UNEXPECTED);
     }
     LOG_TRACE("Created string.")
     va_end(args);
@@ -193,9 +198,15 @@ Error String_replace_char(
         return res_replace;                                                                            \
     }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wextra-semi"
+// I ma forced to add a semi-colon at the end of each of the following lines otherwise the formatter
+// will make a mess. However, the compiler is complaining about those, and hence I disabled the
+// warning.
 String_replace_pattern_c(size_t);
 String_replace_pattern_c(float);
 String_replace_pattern_c(int);
+#pragma GCC diagnostic pop
 
 Error _String_replace_pattern(
     const char* file,
@@ -335,7 +346,7 @@ Error _String_between_patterns_in_string_p(
 }
 
 #if TEST == 1
-void test_class_string()
+void test_class_string(void)
 {
     PRINT_BANNER();
     PRINT_TEST_TITLE("Destroy empty string without failure")

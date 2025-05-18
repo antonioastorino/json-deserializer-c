@@ -6,8 +6,8 @@
 #if MEMORY_CHECK == 1
 #define create_file(pointer, file, line)                                                           \
     {                                                                                              \
-        char file_name[256];                                                                       \
-        sprintf(file_name, "/tmp/pointers/%p", pointer);                                           \
+        char file_name[256] = {0};                                                                 \
+        snprintf(file_name, 255, "/tmp/pointers/%p", pointer);                                     \
         FILE* fh = fopen(file_name, "wx");                                                         \
         if (!fh)                                                                                   \
         {                                                                                          \
@@ -20,8 +20,8 @@
 
 #define remove_file(pointer)                                                                       \
     {                                                                                              \
-        char file_name[256];                                                                       \
-        sprintf(file_name, "/tmp/pointers/%p", pointer);                                           \
+        char file_name[256] = {0};                                                                 \
+        snprintf(file_name, 255, "/tmp/pointers/%p", pointer);                                     \
         if (remove(file_name))                                                                     \
         {                                                                                          \
             LOG_PERROR("Cannot remove %p file.", pointer);                                         \
@@ -73,7 +73,7 @@ int my_memory_vasprintf(
     va_list args)
 {
     int ret_val = vasprintf(ptr_p, format, args);
-    create_file(*ptr_p, file, line);
+    create_file((void*)*ptr_p, file, line);
     return ret_val;
 }
 
@@ -91,7 +91,7 @@ void my_memory_free(void* ptr)
 }
 
 #if TEST == 1
-void test_my_memory()
+void test_my_memory(void)
 {
     PRINT_BANNER();
     PRINT_TEST_TITLE("my_memory_asprintf");
