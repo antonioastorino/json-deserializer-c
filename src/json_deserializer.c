@@ -837,7 +837,14 @@ void JsonObj_destroy(JsonObj* json_obj_p)
 #define OBJ_GET_VALUE_c(suffix, value_token, out_type, ACTION)                      \
     Error obj_get_##suffix(const JsonObj* obj, const char* key, out_type out_value) \
     {                                                                               \
-        return get_##suffix(obj->root.next_sibling, key, out_value);                \
+        if (obj)                                                                    \
+        {                                                                           \
+            return get_##suffix(obj->root.next_sibling, key, out_value);            \
+        }                                                                           \
+        else                                                                        \
+        {                                                                           \
+            return ERR_NULL;                                                        \
+        }                                                                           \
     }
 
 #define GET_VALUE_c(suffix, value_token, out_type, ACTION)                           \
@@ -848,6 +855,10 @@ void JsonObj_destroy(JsonObj* json_obj_p)
             *out_value = NULL;                                                       \
             LOG_ERROR("Input item is NULL - key `%s`.", key);                        \
             return ERR_JSON_MISSING_ENTRY;                                           \
+        }                                                                            \
+        if (!item->key_p)                                                            \
+        {                                                                            \
+            return ERR_NULL;                                                         \
         }                                                                            \
         if (!strcmp(item->key_p, key))                                               \
         {                                                                            \
@@ -881,6 +892,10 @@ void JsonObj_destroy(JsonObj* json_obj_p)
         if (item == NULL)                                                                     \
         {                                                                                     \
             LOG_ERROR("Input item is NULL - key: `%s`.", key);                                \
+            return ERR_NULL;                                                                  \
+        }                                                                                     \
+        if (!item->key_p)                                                                     \
+        {                                                                                     \
             return ERR_NULL;                                                                  \
         }                                                                                     \
         if (!strcmp(item->key_p, key))                                                        \
@@ -1108,8 +1123,12 @@ void test_json_deserializer(void)
     PRINT_TEST_TITLE("Empty object")
     {
         JsonObj json_obj;
+        JsonItem* json_item_p;
         const char* json_char_p = "{}";
+        int a;
         ASSERT_OK(JsonObj_new(json_char_p, &json_obj), "Empty JSON created");
+        ASSERT_ERR(Json_get(&json_obj, "missing key", &json_item_p), "Fix NULL on key");
+        ASSERT_ERR(Json_get(&json_obj, "missing key", &a), "Fix NULL on key");
         JsonObj_destroy(&json_obj);
     }
     PRINT_TEST_TITLE("Wrong object")
@@ -1124,8 +1143,7 @@ void test_json_deserializer(void)
         const char* value_str;
         const char* json_char_p = "{\"key\":{}}";
         ASSERT_OK(JsonObj_new(json_char_p, &json_obj), "Empty nested JSON");
-        ASSERT_ERR(
-            Json_get(&json_obj, "key", &value_str), "Key found but value cannot be retrieved");
+        ASSERT_ERR(Json_get(&json_obj, "key", &value_str), "Key found but value cannot be retrieved");
         JsonObj_destroy(&json_obj);
     }
     PRINT_TEST_TITLE("Key-value pair");
