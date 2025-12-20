@@ -17,7 +17,7 @@ Here is one:
 ```c
 JsonObj json_obj;
 const char* value_str;  // Used for retrieving a value of type const char*
-size_t value_uint;      // Used for retrieving a value of type size_t
+json_uint_t value_uint;      // Used for retrieving an unsigned integer
 const char* json_char_p = " {\"key\": \"value string\", \"sibling\": 56}";
 
 JsonObj_new(json_char_p, &json_obj)          // Should return ERR_ALL_GOOD;
@@ -28,12 +28,12 @@ JsonObj_destroy(&json_obj);                  // Don't leak memory!
 
 ## How to build and test
 
-Build using
+Build and run using
 ```bash
 ./bin/run.sh
 ```
 
-Build and run tests using
+Build and run unit tests using
 ```bash
 ./bin/run.sh test
 ```

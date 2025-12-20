@@ -3,14 +3,6 @@ typedef enum
     ERR_FATAL = -1,
     ERR_ALL_GOOD,
     ERR_INVALID,
-    //    ERR_UNDEFINED,
-    //    ERR_INFALLIBLE,
-    //    ERR_UNEXPECTED,
-    //    ERR_FORBIDDEN,
-    //    ERR_TIMEOUT,
-    //    ERR_OUT_OF_RANGE,
-    //    ERR_PERMISSION_DENIED,
-    //    ERR_INTERRUPTION,
     ERR_NULL,
     ERR_PARSE_STRING_TO_INT,
     ERR_PARSE_STRING_TO_LLU,
@@ -19,12 +11,6 @@ typedef enum
     ERR_JSON_INVALID,
     ERR_JSON_MISSING_ENTRY,
     ERR_TYPE_MISMATCH,
-    //    ERR_FS_INTERNAL,
-    //    ERR_TCP_INTERNAL,
-    //    ERR_NOT_FOUND,
-    //    ERR_GPIO_UNAVAILABLE,
-    //    ERR_CANNOT_OPEN_FILE,
-    //    ERR_SERIAL_READ_FAILED,
 } Error;
 
 #define is_err(_expr) ((_expr) != ERR_ALL_GOOD)
@@ -225,6 +211,11 @@ void ASSERT_NE_char_p(const char*, const char*, const char*, const char*, int);
     fprintf(stderr, "> \x1B[31mFAIL\x1B[0m\t %s\n", message); \
     fprintf(stderr, "> Err - Test failed.\n%s:%d : left == right\n", filename, line_number)
 
+typedef long long int json_int_t;
+typedef unsigned long long json_uint_t;
+typedef double json_decimal_t;
+typedef bool json_bool_t;
+
 typedef struct JsonItem JsonItem;
 typedef struct JsonValue JsonValue;
 typedef struct JsonArray JsonArray;
@@ -248,10 +239,10 @@ typedef struct JsonValue
     ValueType value_type;
     union
     {
-        int value_int;                   // leaf int
-        unsigned long long value_llu;    // leaf unsigned long long
-        double value_double;             // leaf double
-        bool value_bool;                 // leaf bool
+        json_int_t value_int;            // leaf json_int_t
+        json_uint_t value_llu;           // leaf json_uint_t
+        json_decimal_t value_double;     // leaf json_decimal_t
+        json_bool_t value_bool;          // leaf json_bool_t
         const char* value_char_p;        // leaf c-string
         struct JsonItem* value_child_p;  // another item
         struct JsonArray* value_array_p; // the first item of an array
@@ -261,7 +252,7 @@ typedef struct JsonValue
 typedef struct JsonItem
 {
     const char* key_p;
-    unsigned long long index; // For arrays only
+    json_uint_t index; // For arrays only
     JsonValue value;
     struct JsonItem* parent;
     struct JsonItem* next_sibling;
@@ -289,10 +280,10 @@ Error invalid_request(const JsonArray*, size_t, const JsonArray**);
 
 #define OBJ_GET_NUMBER_h(suffix, out_type)                                                         \
     Error obj_get_##suffix(const JsonObj*, const char*, out_type);
-    OBJ_GET_VALUE_h(value_int, int*)
-    OBJ_GET_VALUE_h(value_llu, unsigned long long*)
-    OBJ_GET_VALUE_h(value_double, double*)
-    OBJ_GET_VALUE_h(value_bool, bool*)
+    OBJ_GET_VALUE_h(value_int, json_int_t*)
+    OBJ_GET_VALUE_h(value_llu, json_uint_t*)
+    OBJ_GET_VALUE_h(value_double, json_decimal_t*)
+    OBJ_GET_VALUE_h(value_bool, json_bool_t*)
 
 #define GET_VALUE_h(suffix, out_type) Error get_##suffix(const JsonItem*, const char*, out_type);
     GET_VALUE_h(value_char_p, const char**)
@@ -300,51 +291,51 @@ Error invalid_request(const JsonArray*, size_t, const JsonArray**);
     GET_VALUE_h(value_array_p, JsonArray**)
 
 #define GET_NUMBER_h(suffix, out_type) Error get_##suffix(const JsonItem*, const char*, out_type);
-    GET_VALUE_h(value_int, int*)
-    GET_VALUE_h(value_llu, unsigned long long*)
-    GET_VALUE_h(value_double, double*)
-    GET_VALUE_h(value_bool, bool*)
+    GET_VALUE_h(value_int, json_int_t*)
+    GET_VALUE_h(value_llu, json_uint_t*)
+    GET_VALUE_h(value_double, json_decimal_t*)
+    GET_VALUE_h(value_bool, json_bool_t*)
 
 #define GET_ARRAY_VALUE_h(suffix, out_type)                                                        \
     Error get_array_##suffix(const JsonArray*, size_t, out_type);
     GET_ARRAY_VALUE_h(value_char_p, const char**)
-    GET_ARRAY_VALUE_h(value_int, int*)
-    GET_ARRAY_VALUE_h(value_llu, unsigned long long*)
-    GET_ARRAY_VALUE_h(value_double, double*)
-    GET_ARRAY_VALUE_h(value_bool, bool*)
+    GET_ARRAY_VALUE_h(value_int, json_int_t*)
+    GET_ARRAY_VALUE_h(value_llu, json_uint_t*)
+    GET_ARRAY_VALUE_h(value_double, json_decimal_t*)
+    GET_ARRAY_VALUE_h(value_bool, json_bool_t*)
     GET_ARRAY_VALUE_h(value_child_p, JsonItem**)
 
-#define Json_get(json_stuff, needle, out_p)                                                        \
-    _Generic ((json_stuff),                                                                        \
-        JsonObj*: _Generic((out_p),                                                                \
-            const char**        : obj_get_value_char_p,                                            \
-            int*                : obj_get_value_int,                                               \
-            unsigned long *     : obj_get_value_llu,                                               \
-            unsigned long long* : obj_get_value_llu,                                               \
-            double*             : obj_get_value_double,                                            \
-            bool*               : obj_get_value_bool,                                              \
-            JsonItem**          : obj_get_value_child_p,                                           \
-            JsonArray**         : obj_get_value_array_p                                            \
-            ),                                                                                     \
-         JsonItem*: _Generic((out_p),                                                              \
-            const char**        : get_value_char_p,                                                \
-            int*                : get_value_int,                                                   \
-            unsigned long *     : get_value_llu,                                                   \
-            unsigned long long* : get_value_llu,                                                   \
-            double*             : get_value_double,                                                \
-            bool*               : get_value_bool,                                                  \
-            JsonItem**          : get_value_child_p,                                               \
-            JsonArray**         : get_value_array_p                                                \
-            ),                                                                                     \
-        JsonArray*: _Generic((out_p),                                                              \
-            const char**        : get_array_value_char_p,                                          \
-            int*                : get_array_value_int,                                             \
-            unsigned long long* : get_array_value_llu,                                             \
-            double*             : get_array_value_double,                                          \
-            bool*               : get_array_value_bool,                                            \
-            JsonItem**          : get_array_value_child_p,                                         \
-            JsonArray**         : invalid_request                                                  \
-            )                                                                                      \
+#define Json_get(json_stuff, needle, out_p)                    \
+    _Generic ((json_stuff),                                    \
+        JsonObj*: _Generic((out_p),                            \
+            const char**    : obj_get_value_char_p,            \
+            json_int_t*     : obj_get_value_int,               \
+            unsigned long * : obj_get_value_llu,               \
+            json_uint_t*    : obj_get_value_llu,               \
+            json_decimal_t* : obj_get_value_double,            \
+            json_bool_t*    : obj_get_value_bool,              \
+            JsonItem**      : obj_get_value_child_p,           \
+            JsonArray**     : obj_get_value_array_p            \
+            ),                                                 \
+         JsonItem*: _Generic((out_p),                          \
+            const char**    : get_value_char_p,                \
+            json_int_t*     : get_value_int,                   \
+            unsigned long * : get_value_llu,                   \
+            json_uint_t*    : get_value_llu,                   \
+            json_decimal_t* : get_value_double,                \
+            json_bool_t*    : get_value_bool,                  \
+            JsonItem**      : get_value_child_p,               \
+            JsonArray**     : get_value_array_p                \
+            ),                                                 \
+        JsonArray*: _Generic((out_p),                          \
+            const char**    : get_array_value_char_p,          \
+            json_int_t*     : get_array_value_int,             \
+            json_uint_t*    : get_array_value_llu,             \
+            json_decimal_t* : get_array_value_double,          \
+            json_bool_t*    : get_array_value_bool,            \
+            JsonItem**      : get_array_value_child_p,         \
+            JsonArray**     : invalid_request                  \
+            )                                                  \
         )(json_stuff, needle, out_p)
 // clang-format on
 

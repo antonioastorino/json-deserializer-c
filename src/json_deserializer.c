@@ -151,8 +151,8 @@ void ASSERT_EQ_long_long(
 }
 
 void ASSERT_EQ_llu(
-    unsigned long long value_1,
-    unsigned long long value_2,
+    json_uint_t value_1,
+    json_uint_t value_2,
     const char* message,
     const char* filename,
     int line_number)
@@ -606,7 +606,7 @@ _deserialize(JsonItem* curr_item_p, char** start_pos_p)
             num_buff[i] = '\0';
             if (dot_found)
             {
-                double parsed_double = 0.0f;
+                json_decimal_t parsed_double = 0.0f;
                 if (sscanf(num_buff, "%lf", &parsed_double) != 1)
                 {
                     LOG_ERROR("Failed to parse double");
@@ -616,13 +616,13 @@ _deserialize(JsonItem* curr_item_p, char** start_pos_p)
                 {
                     curr_item_p->value.value_type   = VALUE_DOUBLE;
                     curr_item_p->value.value_double = parsed_double;
-                    LOG_TRACE("Found value %f", curr_item_p->value.value_double);
+                    LOG_TRACE("Found value %lf", curr_item_p->value.value_double);
                 }
             }
             else if (num_buff[0] == '-')
             { // Convert into an integer if it is negative.
-                int parsed_int = 0;
-                if (sscanf(num_buff, "%d", &parsed_int) != 1)
+                json_int_t parsed_int = 0;
+                if (sscanf(num_buff, "%lld", &parsed_int) != 1)
                 {
                     LOG_ERROR("Failed to parse int");
                     ret_result = ERR_PARSE_STRING_TO_INT;
@@ -631,23 +631,30 @@ _deserialize(JsonItem* curr_item_p, char** start_pos_p)
                 {
                     curr_item_p->value.value_type = VALUE_INT;
                     curr_item_p->value.value_int  = parsed_int;
-                    LOG_TRACE("Found value %d", curr_item_p->value.value_int);
+                    LOG_TRACE("Found value %lld", curr_item_p->value.value_int);
                 }
             }
             else
             {
                 // Convert any positive value into a size_t.
-                unsigned long long parsed_size_t = 0;
-                if (sscanf(num_buff, "%llu", &parsed_size_t) != 1)
+                json_uint_t parsed_llu = 0;
+                if (sscanf(num_buff, "%llu", &parsed_llu) != 1)
                 {
-                    LOG_ERROR("Failed to parse unsigned long long");
+                    LOG_ERROR("Failed to parse json_uint_t");
                     ret_result = ERR_PARSE_STRING_TO_LLU;
                 }
                 if (is_ok(ret_result))
                 {
+                    char tmp[MAX_NUM_LEN];
+                    snprintf(tmp, MAX_NUM_LEN, "%llu", parsed_llu);
+                    if (strncmp(tmp, num_buff, MAX_NUM_LEN) != 0)
+                    {
+                        LOG_ERROR("LLU overflow %s", tmp);
+                        return ERR_PARSE_STRING_TO_LLU;
+                    }
                     curr_item_p->value.value_type = VALUE_LLU;
-                    curr_item_p->value.value_llu  = parsed_size_t;
-                    LOG_TRACE("Found value %llu", curr_item_p->value.value_llu);
+                    curr_item_p->value.value_llu  = parsed_llu;
+                    LOG_TRACE("Found LLU value %llu", curr_item_p->value.value_llu);
                 }
             }
             break;
@@ -926,24 +933,24 @@ void JsonObj_destroy(JsonObj* json_obj_p)
                 if (item->value.value_int < 0)                                                \
                 {                                                                             \
                     LOG_ERROR(                                                                \
-                        "Impossible to convert negative int %d into size_t",                  \
+                        "Impossible to convert negative int %lld into size_t",                \
                         item->value.value_int);                                               \
                     LOG_ERROR("Failed to convert from INT to LLU");                           \
                     return ERR_INVALID;                                                       \
                 };                                                                            \
-                *out_value = (size_t)item->value.value_int;                                   \
+                *out_value = (json_uint_t)item->value.value_int;                              \
                 ACTION;                                                                       \
                 return ERR_ALL_GOOD;                                                          \
             }                                                                                 \
             else if ((item->value.value_type == VALUE_LLU) && (value_token == VALUE_INT))     \
             {                                                                                 \
                 LOG_WARNING("Converting size_t to int");                                      \
-                *out_value = (int)item->value.value_llu;                                      \
+                *out_value = (json_int_t)item->value.value_llu;                               \
                 /* check for overflow */                                                      \
-                if ((size_t)*out_value != item->value.value_llu)                              \
+                if (*out_value < 0)                                                           \
                 {                                                                             \
                     LOG_ERROR(                                                                \
-                        "Overflow while converting %llu into an int", item->value.value_llu); \
+                        "Overflow while converting %llu into an lld", item->value.value_llu); \
                     return ERR_INVALID;                                                       \
                 };                                                                            \
                 ACTION;                                                                       \
@@ -1004,10 +1011,10 @@ OBJ_GET_VALUE_c(
     JsonArray**,
     (*out_value)->element = item->value.value_child_p)
 
-OBJ_GET_NUMBER_c(value_int, VALUE_INT, int*, )
-OBJ_GET_NUMBER_c(value_llu, VALUE_LLU, unsigned long long*, )
-OBJ_GET_NUMBER_c(value_double, VALUE_DOUBLE, double*, )
-OBJ_GET_NUMBER_c(value_bool, VALUE_BOOL, bool*, )
+OBJ_GET_NUMBER_c(value_int, VALUE_INT, json_int_t*, )
+OBJ_GET_NUMBER_c(value_llu, VALUE_LLU, json_uint_t*, )
+OBJ_GET_NUMBER_c(value_double, VALUE_DOUBLE, json_decimal_t*, )
+OBJ_GET_NUMBER_c(value_bool, VALUE_BOOL, json_bool_t*, )
 
 GET_VALUE_c(value_char_p, VALUE_STR, const char**, )
 GET_VALUE_c(value_child_p, VALUE_ITEM, JsonItem**, )
@@ -1017,14 +1024,14 @@ GET_VALUE_c(
     JsonArray**,
     (*out_value)->element = item->value.value_child_p)
 
-GET_NUMBER_c(value_int, VALUE_INT, int*, )
-GET_NUMBER_c(value_llu, VALUE_LLU, unsigned long long *, )
+GET_NUMBER_c(value_int, VALUE_INT, json_int_t*, )
+GET_NUMBER_c(value_llu, VALUE_LLU, json_uint_t *, )
 GET_NUMBER_c(value_double, VALUE_DOUBLE, double*, )
 GET_NUMBER_c(value_bool, VALUE_BOOL, bool*, )
 
 GET_ARRAY_VALUE_c(value_char_p, VALUE_STR, const char**)
-GET_ARRAY_VALUE_c(value_int, VALUE_INT, int*)
-GET_ARRAY_VALUE_c(value_llu, VALUE_LLU, unsigned long long*)
+GET_ARRAY_VALUE_c(value_int, VALUE_INT, json_int_t*)
+GET_ARRAY_VALUE_c(value_llu, VALUE_LLU, json_uint_t*)
 GET_ARRAY_VALUE_c(value_double, VALUE_DOUBLE, double*)
 GET_ARRAY_VALUE_c(value_bool, VALUE_BOOL, bool*)
 GET_ARRAY_VALUE_c(value_child_p, VALUE_ITEM, JsonItem**)
@@ -1032,7 +1039,7 @@ GET_ARRAY_VALUE_c(value_child_p, VALUE_ITEM, JsonItem**)
 #pragma clang diagnostic ignored "-Wextra-semi"
 ; // ensure clang-format works when turned on again
 #pragma clang diagnostic pop
-// clang-format on
+                                                                                  // clang-format on
 
 #ifdef TEST
 void test_logger(void)
@@ -1125,7 +1132,7 @@ void test_json_deserializer(void)
         JsonObj json_obj;
         JsonItem* json_item_p;
         const char* json_char_p = "{}";
-        int a;
+        json_int_t a;
         ASSERT_OK(JsonObj_new(json_char_p, &json_obj), "Empty JSON created");
         ASSERT_ERR(Json_get(&json_obj, "missing key", &json_item_p), "Fix NULL on key");
         ASSERT_ERR(Json_get(&json_obj, "missing key", &a), "Fix NULL on key");
@@ -1162,7 +1169,7 @@ void test_json_deserializer(void)
     {
         JsonObj json_obj;
         const char* value_str;
-        unsigned long long value_llu;
+        json_uint_t value_llu;
         const char* json_char_p = " {\"key\": \"value string\", \"sibling\": 56}";
         ASSERT_OK(JsonObj_new(json_char_p, &json_obj), "Json object created");
         Json_get(&json_obj, "key", &value_str);
@@ -1175,7 +1182,7 @@ void test_json_deserializer(void)
     {
         JsonObj json_obj;
         const char* value_str;
-        unsigned long long value_llu;
+        json_uint_t value_llu;
         JsonArray* json_array;
         const char* json_char_p = " {\"key\": [\"array value\", 56]}";
         printf("\n%s\n", json_char_p);
@@ -1191,7 +1198,7 @@ void test_json_deserializer(void)
     {
         JsonObj json_obj;
         JsonItem* json_item;
-        unsigned long long value_llu;
+        json_uint_t value_llu;
         JsonArray* json_array;
         const char* json_char_p = " {\"key\": [ {\"array key\": 56}]}";
         printf("\n%s\n", json_char_p);
@@ -1220,7 +1227,7 @@ void test_json_deserializer(void)
     {
         JsonObj json_obj;
         JsonItem* json_item;
-        unsigned long long value_llu;
+        json_uint_t value_llu;
         const char* value_str;
         double value_double;
         bool value_bool;
@@ -1252,7 +1259,7 @@ void test_json_deserializer(void)
         char* json_string = load_file_alloc("test/assets/test_json_array_2.json");
         JsonItem* json_item;
         JsonObj json_obj;
-        unsigned long long value_llu;
+        json_uint_t value_llu;
         const char* value_str;
         double value_double;
         bool value_bool;
@@ -1287,7 +1294,7 @@ void test_json_deserializer(void)
         JsonObj json_obj;
         JsonItem* json_item;
         const char* value_str;
-        unsigned long long value_llu;
+        json_uint_t value_llu;
         JsonArray* json_array;
         char* json_string = load_file_alloc("test/assets/test_json_array_3.json");
         ASSERT_OK(JsonObj_new(json_string, &json_obj), "Json object created");
@@ -1303,7 +1310,7 @@ void test_json_deserializer(void)
     PRINT_TEST_TITLE("test_json_array_4.json");
     {
         JsonObj json_obj;
-        unsigned long long value_llu;
+        json_uint_t value_llu;
         JsonArray* json_array;
         bool value_bool;
         char* json_string = load_file_alloc("test/assets/test_json_array_4.json");
@@ -1328,7 +1335,7 @@ void test_json_deserializer(void)
         JsonObj json_obj;
         JsonItem* json_item;
         const char* value_str;
-        unsigned long long value_llu;
+        json_uint_t value_llu;
         double value_double;
         bool value_bool;
         JsonArray* json_array;
@@ -1413,19 +1420,20 @@ void test_json_deserializer(void)
     PRINT_TEST_TITLE("Data conversion");
     {
         JsonObj json_obj;
-        unsigned long long value_llu;
-        int value_int;
+        json_uint_t value_llu;
+        json_int_t value_int;
         Error ret_res;
         char* json_string = load_file_alloc("test/assets/test_json_numbers.json");
         ASSERT_OK(JsonObj_new(json_string, &json_obj), "Json object created");
         Json_get(&json_obj, "value_int", &value_llu);
-        ASSERT_EQ((unsigned long long)23, value_llu, "Conversion from INT to LLU successfull");
+        ASSERT_EQ((json_uint_t)23, value_llu, "Conversion from INT to LLU successfull");
         Json_get(&json_obj, "value_small_uint", &value_int);
-        ASSERT_EQ((int)43, value_int, "Conversion from LLU to INT successfull");
+        ASSERT_EQ((json_int_t)43, value_int, "Conversion from LLU to INT successfull");
         ret_res = Json_get(&json_obj, "value_negative_int", &value_llu);
         ASSERT(ret_res == ERR_INVALID, "Conversion from negative INT to LLU failed");
         ret_res = Json_get(&json_obj, "value_uint", &value_int);
         ASSERT(ret_res == ERR_INVALID, "Conversion from large LLU to INT failed");
+        printf("%lld\n", value_int);
         JsonObj_destroy(&json_obj);
         free(json_string);
     }
