@@ -646,8 +646,8 @@ _deserialize(JsonItem* curr_item_p, char** start_pos_p)
                 if (is_ok(ret_result))
                 {
                     char tmp[MAX_NUM_LEN];
-                    snprintf(tmp, MAX_NUM_LEN, "%llu", parsed_llu);
-                    if (strncmp(tmp, num_buff, MAX_NUM_LEN) != 0)
+                    snprintf(tmp, MAX_NUM_LEN, "+%llu", parsed_llu);
+                    if ((strncmp(tmp, num_buff, MAX_NUM_LEN) != 0) && (strncmp(&tmp[1], num_buff, MAX_NUM_LEN) != 0))
                     {
                         LOG_ERROR("LLU overflow %s", tmp);
                         return ERR_PARSE_STRING_TO_LLU;
