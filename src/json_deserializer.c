@@ -762,6 +762,7 @@ Error JsonObj_new(
     {
         // TODO: Handle case in which the JSON string starts with [{ (array of objects).
         LOG_ERROR("Invalid JSON string.");
+        free(trimmed_json_string);
         return ERR_JSON_INVALID;
     }
     char* tokens_string __attribute__((cleanup(wrap_free))) = _generate_tokens_malloc(trimmed_json_string);
@@ -1053,6 +1054,7 @@ void test_logger(void)
     LOG_WARNING("Log warning.");
     LOG_ERROR("Log error.");
 }
+
 static char* load_file_alloc(char* filename)
 {
     FILE* json_file = fopen(filename, "r");
