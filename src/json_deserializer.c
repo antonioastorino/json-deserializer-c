@@ -5,8 +5,6 @@ FILE* log_err_file_p = NULL;
 pthread_mutex_t log_out_mutex;
 pthread_mutex_t log_err_mutex;
 
-FILE* get_log_out_file(void) { return log_out_file_p == NULL ? stdout : log_out_file_p; }
-FILE* get_log_err_file(void) { return log_err_file_p == NULL ? stderr : log_err_file_p; }
 void wrap_free(char** var) { free(*var); }
 
 void _logger_open_out_file(const char* log_out_file_path_str)
@@ -97,11 +95,11 @@ void ASSERT_(bool value, const char* message, const char* filename, int line_num
 {
     if (value)
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
-        PRINT_FAIL_MESSAGE_(message, filename, line_number);
+        PRINT_FAIL_MESSAGE_();
         fprintf(stderr, "The value is `false`\n");
     }
 }
@@ -110,11 +108,11 @@ void ASSERT_OK_(Error result, const char* message, const char* filename, int lin
 {
     if (is_ok(result))
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
-        PRINT_FAIL_MESSAGE_(message, filename, line_number);
+        PRINT_FAIL_MESSAGE_();
         fprintf(stderr, "The value is `false`\n");
     }
 }
@@ -123,16 +121,16 @@ void ASSERT_ERR_(Error result, const char* message, const char* filename, int li
 {
     if (is_err(result))
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
-        PRINT_FAIL_MESSAGE_(message, filename, line_number);
+        PRINT_FAIL_MESSAGE_();
         fprintf(stderr, "The value is `false`\n");
     }
 }
 
-void ASSERT_EQ_long_long(
+void ASSERT_EQ_lld(
     long long value_1,
     long long value_2,
     const char* message,
@@ -141,7 +139,7 @@ void ASSERT_EQ_long_long(
 {
     if (value_1 == value_2)
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
@@ -159,30 +157,12 @@ void ASSERT_EQ_llu(
 {
     if (value_1 == value_2)
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
         PRINT_FAIL_MESSAGE_EQ(message, filename, line_number);
         fprintf(stderr, "Left : `%llu`\nRight: `%llu`\n", value_1, value_2);
-    }
-}
-
-void ASSERT_EQ_uint(
-    size_t value_1,
-    size_t value_2,
-    const char* message,
-    const char* filename,
-    int line_number)
-{
-    if (value_1 == value_2)
-    {
-        PRINT_PASS_MESSAGE(message);
-    }
-    else
-    {
-        PRINT_FAIL_MESSAGE_EQ(message, filename, line_number);
-        fprintf(stderr, "Left : `%lu`\nRight: `%lu`\n", value_1, value_2);
     }
 }
 
@@ -195,7 +175,7 @@ void ASSERT_EQ_bool(
 {
     if (value_1 == value_2)
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
@@ -217,7 +197,7 @@ void ASSERT_EQ_double(
 {
     if (value_1 == value_2)
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
@@ -235,7 +215,7 @@ void ASSERT_EQ_char_p(
 {
     if (value_1 == value_2)
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else if (value_1 == NULL || value_2 == NULL || strcmp(value_1, value_2))
     {
@@ -244,43 +224,7 @@ void ASSERT_EQ_char_p(
     }
     else
     {
-        PRINT_PASS_MESSAGE(message);
-    }
-}
-
-void ASSERT_NE_long_long(
-    long long value_1,
-    long long value_2,
-    const char* message,
-    const char* filename,
-    int line_number)
-{
-    if (value_1 != value_2)
-    {
-        PRINT_PASS_MESSAGE(message);
-    }
-    else
-    {
-        PRINT_FAIL_MESSAGE_NE(message, filename, line_number);
-        fprintf(stderr, "Left : `%lld`\nRight: `%lld`\n", value_1, value_2);
-    }
-}
-
-void ASSERT_NE_uint(
-    size_t value_1,
-    size_t value_2,
-    const char* message,
-    const char* filename,
-    int line_number)
-{
-    if (value_1 != value_2)
-    {
-        PRINT_PASS_MESSAGE(message);
-    }
-    else
-    {
-        PRINT_FAIL_MESSAGE_NE(message, filename, line_number);
-        fprintf(stderr, "Left : `%lu`\nRight: `%lu`\n", value_1, value_2);
+        PRINT_PASS_MESSAGE();
     }
 }
 
@@ -293,7 +237,7 @@ void ASSERT_NE_bool(
 {
     if (value_1 != value_2)
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
@@ -315,7 +259,7 @@ void ASSERT_NE_double(
 {
     if (value_1 == value_2)
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
@@ -333,7 +277,7 @@ void ASSERT_NE_char_p(
 {
     if (value_1 != value_2 || value_1 == NULL || value_2 == NULL || strcmp(value_1, value_2))
     {
-        PRINT_PASS_MESSAGE(message);
+        PRINT_PASS_MESSAGE();
     }
     else
     {
@@ -341,6 +285,25 @@ void ASSERT_NE_char_p(
         fprintf(stderr, "Left : `%s`\nRight: `%s`\n", value_1, value_2);
     }
 }
+
+void ASSERT_NE_llu(
+    unsigned long long value_1,
+    unsigned long long value_2,
+    const char* message,
+    const char* filename,
+    int line_number)
+{
+    if (value_1 != value_2)
+    {
+        PRINT_PASS_MESSAGE();
+    }
+    else
+    {
+        PRINT_FAIL_MESSAGE_EQ(message, filename, line_number);
+        fprintf(stderr, "Left : `%llu`\nRight: `%llu`\n", value_1, value_2);
+    }
+}
+
 #define MAX_NUM_LEN (30)
 
 // Used only for returning data in a convenient way. Not used for storage.
@@ -1435,7 +1398,6 @@ void test_json_deserializer(void)
         ASSERT(ret_res == ERR_INVALID, "Conversion from negative INT to LLU failed");
         ret_res = Json_get(&json_obj, "value_uint", &value_int);
         ASSERT(ret_res == ERR_INVALID, "Conversion from large LLU to INT failed");
-        printf("%lld\n", value_int);
         JsonObj_destroy(&json_obj);
         free(json_string);
     }

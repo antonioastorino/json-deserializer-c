@@ -36,8 +36,9 @@ typedef enum
 #define log_err stdout
 void test_logger(void);
 #else /* TEST */
-#define log_out get_log_out_file()
-#define log_err get_log_err_file()
+#define log_out (log_out_file_p == NULL ? stdout : log_out_file_p)
+#define log_err (log_err_file_p == NULL ? stderr : log_err_file_p)
+
 #endif /* TEST */
 
 #define return_on_err(_expr)                            \
@@ -53,9 +54,6 @@ void test_logger(void);
 #if LOG_LEVEL > LEVEL_NO_LOGS
 #define DATE_TIME_STR_LEN 32
 void logger_init(const char*, const char*);
-
-FILE* get_log_out_file(void);
-FILE* get_log_err_file(void);
 
 void get_date_time(char* date_time_str);
 
@@ -128,16 +126,14 @@ void ASSERT_(bool, const char*, const char*, int);
 void ASSERT_OK_(Error, const char*, const char*, int);
 void ASSERT_ERR_(Error, const char*, const char*, int);
 
-void ASSERT_EQ_long_long(long long, long long, const char*, const char*, int);
+void ASSERT_EQ_lld(long long, long long, const char*, const char*, int);
 void ASSERT_EQ_llu(unsigned long long, unsigned long long, const char*, const char*, int);
-void ASSERT_EQ_uint(size_t, size_t, const char*, const char*, int);
 void ASSERT_EQ_bool(bool v1, bool v2, const char*, const char*, int);
 void ASSERT_EQ_double(double, double, const char*, const char*, int);
 void ASSERT_EQ_char_p(const char*, const char*, const char*, const char*, int);
 
-void ASSERT_NE_long_long(long long, long long, const char*, const char*, int);
-void ASSERT_NE_llu(uint32_t, uint32_t, const char*, const char*, int);
-void ASSERT_NE_uint(size_t, size_t, const char*, const char*, int);
+void ASSERT_NE_lld(long long, long long, const char*, const char*, int);
+void ASSERT_NE_llu(unsigned long long, unsigned long long, const char*, const char*, int);
 void ASSERT_NE_bool(bool v1, bool v2, const char*, const char*, int);
 void ASSERT_NE_double(double, double, const char*, const char*, int);
 void ASSERT_NE_char_p(const char*, const char*, const char*, const char*, int);
@@ -156,50 +152,55 @@ void ASSERT_NE_char_p(const char*, const char*, const char*, const char*, int);
     printf("\n");                                          \
     size_t test_counter_ = 0;
 
-#define ASSERT(value, message) ASSERT_(value, message, __FILE__, __LINE__)
-#define ASSERT_OK(value, message) ASSERT_OK_(value, message, __FILE__, __LINE__)
-#define ASSERT_ERR(value, message) ASSERT_ERR_(value, message, __FILE__, __LINE__)
+#define ASSERT(value, message) ASSERT_(value, message, __FILENAME__, __LINE__)
+#define ASSERT_OK(value, message) ASSERT_OK_(value, message, __FILENAME__, __LINE__)
+#define ASSERT_ERR(value, message) ASSERT_ERR_(value, message, __FILENAME__, __LINE__)
 // clang-format off
-#define ASSERT_EQ(value_1, value_2, message)      \
-    _Generic((value_1),                           \
-        int               : ASSERT_EQ_long_long,  \
-        long              : ASSERT_EQ_long_long,  \
-        long long         : ASSERT_EQ_long_long,  \
-        uint8_t           : ASSERT_EQ_llu,        \
-        uint16_t          : ASSERT_EQ_llu,        \
-        uint32_t          : ASSERT_EQ_llu,        \
-        size_t            : ASSERT_EQ_uint,       \
-        unsigned long long: ASSERT_EQ_llu,        \
-        bool              : ASSERT_EQ_bool,       \
-        float             : ASSERT_EQ_double,     \
-        double            : ASSERT_EQ_double,     \
-        char*             : ASSERT_EQ_char_p,     \
-        const char*       : ASSERT_EQ_char_p      \
-    )(value_1, value_2, message, __FILE__, __LINE__)
+#define ASSERT_EQ(value_1, value_2, message)       \
+    _Generic((value_1),                            \
+        char               : ASSERT_EQ_lld,        \
+        short              : ASSERT_EQ_lld,        \
+        int                : ASSERT_EQ_lld,        \
+        long               : ASSERT_EQ_lld,        \
+        long long          : ASSERT_EQ_lld,        \
+        unsigned char      : ASSERT_EQ_llu,        \
+        unsigned short     : ASSERT_EQ_llu,        \
+        unsigned int       : ASSERT_EQ_llu,        \
+        unsigned long      : ASSERT_EQ_llu,        \
+        unsigned long long : ASSERT_EQ_llu,        \
+        bool               : ASSERT_EQ_bool,       \
+        float              : ASSERT_EQ_double,     \
+        double             : ASSERT_EQ_double,     \
+        char*              : ASSERT_EQ_char_p,     \
+        const char*        : ASSERT_EQ_char_p      \
+    )(value_1, value_2, message, __FILENAME__, __LINE__)
 
-#define ASSERT_NE(value_1, value_2, message)      \
-    _Generic((value_1),                           \
-        int           : ASSERT_NE_long_long,      \
-        long          : ASSERT_NE_long_long,      \
-        long long     : ASSERT_NE_long_long,      \
-        uint8_t       : ASSERT_NE_llu,            \
-        uint16_t      : ASSERT_NE_llu,            \
-        uint32_t      : ASSERT_NE_llu,            \
-        size_t        : ASSERT_NE_uint,           \
-        bool          : ASSERT_NE_bool,           \
-        float         : ASSERT_NE_double,         \
-        double        : ASSERT_NE_double,         \
-        char*         : ASSERT_NE_char_p,         \
-        const char*   : ASSERT_NE_char_p          \
-    )(value_1, value_2, message, __FILE__, __LINE__)
+#define ASSERT_NE(value_1, value_2, message)       \
+    _Generic((value_1),                            \
+        char               : ASSERT_NE_lld,        \
+        short              : ASSERT_NE_lld,        \
+        int                : ASSERT_NE_lld,        \
+        long               : ASSERT_NE_lld,        \
+        long long          : ASSERT_NE_lld,        \
+        unsigned char      : ASSERT_NE_llu,        \
+        unsigned short     : ASSERT_NE_llu,        \
+        unsigned int       : ASSERT_NE_llu,        \
+        unsigned long      : ASSERT_NE_llu,        \
+        unsigned long long : ASSERT_NE_llu,        \
+        bool               : ASSERT_NE_bool,       \
+        float              : ASSERT_NE_double,     \
+        double             : ASSERT_NE_double,     \
+        char*              : ASSERT_NE_char_p,     \
+        const char*        : ASSERT_NE_char_p      \
+    )(value_1, value_2, message, __FILENAME__, __LINE__)
 
 // clang-format on
 
 #define PRINT_TEST_TITLE(title) printf("\n------- T:%lu < %s > -------\n", ++test_counter_, title);
 #endif /* TEST */
-#define PRINT_PASS_MESSAGE(message) printf("> \x1B[32mPASS\x1B[0m\t %s\n", message)
+#define PRINT_PASS_MESSAGE() printf("> \x1B[32mPASS\x1B[0m %s:%d\t %s\n", filename, line_number, message)
 
-#define PRINT_FAIL_MESSAGE_(message, filename, line_number)   \
+#define PRINT_FAIL_MESSAGE_()                                 \
     fprintf(stderr, "> \x1B[31mFAIL\x1B[0m\t %s\n", message); \
     fprintf(stderr, "> Err - Test failed.\n%s:%d : false assertion\n", filename, line_number)
 
@@ -310,7 +311,6 @@ Error invalid_request(const JsonArray*, size_t, const JsonArray**);
         JsonObj*: _Generic((out_p),                            \
             const char**    : obj_get_value_char_p,            \
             json_int_t*     : obj_get_value_int,               \
-            unsigned long * : obj_get_value_llu,               \
             json_uint_t*    : obj_get_value_llu,               \
             json_decimal_t* : obj_get_value_double,            \
             json_bool_t*    : obj_get_value_bool,              \
@@ -320,7 +320,6 @@ Error invalid_request(const JsonArray*, size_t, const JsonArray**);
          JsonItem*: _Generic((out_p),                          \
             const char**    : get_value_char_p,                \
             json_int_t*     : get_value_int,                   \
-            unsigned long * : get_value_llu,                   \
             json_uint_t*    : get_value_llu,                   \
             json_decimal_t* : get_value_double,                \
             json_bool_t*    : get_value_bool,                  \
@@ -337,8 +336,12 @@ Error invalid_request(const JsonArray*, size_t, const JsonArray**);
             JsonArray**     : invalid_request                  \
             )                                                  \
         )(json_stuff, needle, out_p)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wextra-semi"
+; // ensure clang-format works when turned on again
+#pragma clang diagnostic pop
 // clang-format on
 
 #ifdef TEST
-                                                                                void test_json_deserializer(void);
+void test_json_deserializer(void);
 #endif
