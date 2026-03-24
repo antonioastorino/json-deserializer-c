@@ -267,7 +267,6 @@ typedef struct JsonObj
 
 Error JsonObj_new(const char*, JsonObj*);
 void JsonObj_destroy(JsonObj*);
-void JsonObj_get_tokens(char*);
 
 // Created to have a symmetry between GET_VALUE and GET_ARRAY_VALUE
 Error invalid_request(const JsonArray*, size_t, const JsonArray**);
